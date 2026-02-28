@@ -1,4 +1,6 @@
 # arliamp
+<img width="3492" height="2286" alt="4fdff31e-d4e4-4e8d-ba04-388cadc5d591" src="https://github.com/user-attachments/assets/dc9a2eb1-c358-4b38-b2c0-79e66b8c0d70" />
+
 
 `arliamp` launches an isolated, full-screen Ghostty session for `rliamp` with a cyber stage wrapper (matrix background + centered player pane), without touching global Ghostty config.
 
