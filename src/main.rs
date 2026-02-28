@@ -121,6 +121,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 set -eu
 state_file={state_file}
 conf_file={conf_file}
+ghostty_pid_file={ghostty_pid_file}
 off_shader={off_shader}
 static_shader={static_shader}
 crazy_shader={crazy_shader}
@@ -165,11 +166,19 @@ END {{
 ' "$conf_file" > "$tmp_conf"
 mv "$tmp_conf" "$conf_file"
 
+if [ -f "$ghostty_pid_file" ]; then
+  ghostty_pid="$(cat "$ghostty_pid_file" 2>/dev/null || true)"
+  if [ -n "$ghostty_pid" ] && kill -0 "$ghostty_pid" 2>/dev/null; then
+    kill -USR2 "$ghostty_pid" 2>/dev/null || true
+  fi
+fi
+
 printf '%s\n' "$next" > "$state_file"
 tmux display-message "VEO: $label (v)"
 "#,
         state_file = sh_quote(&state_file.to_string_lossy()),
         conf_file = sh_quote(&ghostty_conf.to_string_lossy()),
+        ghostty_pid_file = sh_quote(&runtime_dir.join("ghostty.pid").to_string_lossy()),
         off_shader = sh_quote(&off_shader.to_string_lossy()),
         static_shader = sh_quote(&static_shader.to_string_lossy()),
         crazy_shader = sh_quote(&crazy_shader.to_string_lossy()),
@@ -183,6 +192,9 @@ tmux display-message "VEO: $label (v)"
          set -g detach-on-destroy on\n\
          set -g exit-empty on\n\
          set -g message-style \"bg=black,fg=green\"\n\
+         set -g pane-border-style \"fg=black,bg=black\"\n\
+         set -g pane-active-border-style \"fg=black,bg=black\"\n\
+         set -g pane-border-status off\n\
          set -sg escape-time 0\n\
          bind -n v run-shell {toggle}\n\
          bind -n V run-shell {toggle}\n\
@@ -225,6 +237,28 @@ cleanup() {{
   rm -rf "$RUNTIME_DIR"
 }}
 trap cleanup EXIT INT TERM
+
+detect_ghostty_pid() {{
+  cur="$$"
+  i=0
+  while [ "$i" -lt 24 ]; do
+    ppid="$(ps -o ppid= -p "$cur" 2>/dev/null | tr -d ' ')"
+    [ -z "$ppid" ] && break
+    [ "$ppid" -le 1 ] 2>/dev/null && break
+    comm="$(ps -o comm= -p "$ppid" 2>/dev/null || true)"
+    if printf '%s\n' "$comm" | grep -qi 'ghostty'; then
+      printf '%s\n' "$ppid"
+      return 0
+    fi
+    cur="$ppid"
+    i=$((i + 1))
+  done
+  return 1
+}}
+
+if ghostty_pid="$(detect_ghostty_pid)"; then
+  printf '%s\n' "$ghostty_pid" > "$RUNTIME_DIR/ghostty.pid"
+fi
 
 # Build a stable 3x3 stage before attach to avoid popup startup flicker.
 "$TMUX_BIN" -S "$TMUX_SOCKET" -f "$TMUX_CONF" new-session -d -s "$SESSION" "$SIDE_CMD"
