@@ -9,7 +9,7 @@ class Arliamp < Formula
   depends_on "tmux"
 
   def install
-    system "cargo", "install", *std_cargo_args(path: ".")
+    system "cargo", "install", "--locked", "--path", ".", "--root", prefix
   end
 
   def caveats

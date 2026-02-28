@@ -9,7 +9,9 @@
 brew tap 0smboy/arliamp https://github.com/0smboy/arliamp
 brew install 0smboy/arliamp/arliamp
 
-# ZeroBrew
+# ZeroBrew (requires Ruby 3 in PATH)
+brew install ruby
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 zb install 0smboy/arliamp/arliamp
 ```
 
@@ -54,3 +56,15 @@ For each GitHub release:
 - Asset 3+: source packages (`Source code (zip)` / `Source code (tar.gz)` provided by GitHub)
 
 If you want manual install without brew, download the binary for your CPU and place it in a directory in your `PATH`, for example `/usr/local/bin/arliamp`.
+
+## ZeroBrew Notes
+
+- `zb` source builds execute a Ruby shim. On macOS, system Ruby (`/usr/bin/ruby`, 2.6) is too old.
+- Use Ruby 3 first in `PATH` before running `zb install`:
+
+```bash
+brew install ruby
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+ruby -v
+zb install 0smboy/arliamp/arliamp
+```
