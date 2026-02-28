@@ -192,8 +192,8 @@ tmux display-message "VEO: $label (v)"
          set -g detach-on-destroy on\n\
          set -g exit-empty on\n\
          set -g message-style \"bg=black,fg=green\"\n\
-         set -g pane-border-lines simple\n\
-         set -g pane-border-indicators off\n\
+         set -g pane-border-style \"fg=black,bg=black\"\n\
+         set -g pane-active-border-style \"fg=black,bg=black\"\n\
          set -g pane-border-status off\n\
          set -sg escape-time 0\n\
          bind -n v run-shell {toggle}\n\
