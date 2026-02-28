@@ -173,16 +173,6 @@ if [ -f "$ghostty_pid_file" ]; then
   fi
 fi
 
-# Fallback: reload all Ghostty app processes if PID detection missed.
-if command -v pgrep >/dev/null 2>&1; then
-  pids="$(pgrep -x Ghostty 2>/dev/null || true)"
-  if [ -n "$pids" ]; then
-    printf '%s\n' "$pids" | while IFS= read -r pid; do
-      [ -n "$pid" ] && kill -USR2 "$pid" 2>/dev/null || true
-    done
-  fi
-fi
-
 printf '%s\n' "$next" > "$state_file"
 tmux display-message "VEO: $label (v)"
 "#,
@@ -198,7 +188,7 @@ tmux display-message "VEO: $label (v)"
     let tmux_body = format!(
         "set -g status off\n\
          set -g mouse on\n\
-         set -g focus-events off\n\
+         set -g focus-events on\n\
          set -g detach-on-destroy on\n\
          set -g exit-empty on\n\
          set -g message-style \"bg=black,fg=green\"\n\
@@ -208,8 +198,6 @@ tmux display-message "VEO: $label (v)"
          set -sg escape-time 0\n\
          bind -n v run-shell {toggle}\n\
          bind -n V run-shell {toggle}\n\
-         bind -n F8 run-shell {toggle}\n\
-         bind -n M-g run-shell {toggle}\n\
          bind v run-shell {toggle}\n",
         toggle = sh_quote(&toggle_script.to_string_lossy()),
     );
@@ -218,14 +206,8 @@ tmux display-message "VEO: $label (v)"
     let center_body = format!(
         r#"#!/bin/sh
 set -eu
-
-# Drain any pending terminal-mode reply bytes to avoid startup artifacts.
-if old_tty="$(stty -g 2>/dev/null)"; then
-  stty -icanon -echo min 0 time 0 2>/dev/null || true
-  dd if=/dev/stdin of=/dev/null bs=256 count=1 2>/dev/null || true
-  stty "$old_tty" 2>/dev/null || true
-fi
-
+export TERM=xterm-256color
+export COLORTERM=truecolor
 {rliamp} {music}
 {tmux} -S {socket} kill-session -t {session} >/dev/null 2>&1 || true
 "#,
@@ -278,9 +260,15 @@ if ghostty_pid="$(detect_ghostty_pid)"; then
   printf '%s\n' "$ghostty_pid" > "$RUNTIME_DIR/ghostty.pid"
 fi
 
-# Single-stage layout: fullscreen matrix + centered popup player.
+# Build a stable 3x3 stage before attach to avoid popup startup flicker.
 "$TMUX_BIN" -S "$TMUX_SOCKET" -f "$TMUX_CONF" new-session -d -s "$SESSION" "$SIDE_CMD"
-"$TMUX_BIN" -S "$TMUX_SOCKET" set-hook -t "$SESSION" client-attached "display-popup -t '$SESSION':0.0 -w 72% -h 68% -E '$CENTER_SCRIPT'; set-hook -u -t '$SESSION' client-attached"
+CENTER_PANE=$("$TMUX_BIN" -S "$TMUX_SOCKET" display-message -p -t "$SESSION":0.0 "#{{pane_id}}")
+"$TMUX_BIN" -S "$TMUX_SOCKET" split-window -v -b -p 16 -t "$CENTER_PANE" "$SIDE_CMD"
+"$TMUX_BIN" -S "$TMUX_SOCKET" split-window -v -p 19 -t "$CENTER_PANE" "$SIDE_CMD"
+"$TMUX_BIN" -S "$TMUX_SOCKET" split-window -h -b -p 14 -t "$CENTER_PANE" "$SIDE_CMD"
+"$TMUX_BIN" -S "$TMUX_SOCKET" split-window -h -p 16 -t "$CENTER_PANE" "$SIDE_CMD"
+"$TMUX_BIN" -S "$TMUX_SOCKET" respawn-pane -k -t "$CENTER_PANE" "\"$CENTER_SCRIPT\""
+"$TMUX_BIN" -S "$TMUX_SOCKET" select-pane -t "$CENTER_PANE"
 "$TMUX_BIN" -S "$TMUX_SOCKET" attach -t "$SESSION"
 "##,
         tmux = sh_quote(&tmux_bin.to_string_lossy()),
