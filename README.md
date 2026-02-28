@@ -13,6 +13,7 @@ brew install 0smboy/arliamp/arliamp
 brew install ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 zb install 0smboy/arliamp/arliamp
+export PATH="/opt/zerobrew/bin:$PATH"
 ```
 
 ## Runtime Requirements
@@ -67,4 +68,12 @@ brew install ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 ruby -v
 zb install 0smboy/arliamp/arliamp
+```
+
+If `arliamp` is installed but `command not found`, ensure:
+
+```bash
+export PATH="/opt/zerobrew/bin:$PATH"
+hash -r
+which arliamp
 ```
