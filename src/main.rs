@@ -68,23 +68,24 @@ const CRAZY_SHADER: &str = r#"void mainImage(out vec4 fragColor, in vec2 fragCoo
 "#;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut args = env::args().skip(1);
-    let music_dir_arg = match (args.next(), args.next()) {
-        (Some(dir), None) => dir,
-        _ => {
-            eprintln!("Usage: arliamp <music-directory>");
-            std::process::exit(1);
+    let raw_inputs: Vec<String> = env::args().skip(1).collect();
+    let mut resolved_inputs = Vec::with_capacity(raw_inputs.len());
+    for input in &raw_inputs {
+        if looks_like_url(input) {
+            resolved_inputs.push(input.clone());
+            continue;
         }
-    };
 
-    let music_dir = fs::canonicalize(&music_dir_arg).map_err(|_| {
-        format!(
-            "arliamp: directory not found: {}",
-            Path::new(&music_dir_arg).display()
-        )
-    })?;
-    if !music_dir.is_dir() {
-        return Err(format!("arliamp: not a directory: {}", music_dir.display()).into());
+        let resolved = fs::canonicalize(input)
+            .map_err(|_| format!("arliamp: path not found: {}", Path::new(input).display()))?;
+
+        if resolved.is_file() {
+            validate_local_file_type(&resolved)?;
+        } else if !resolved.is_dir() {
+            return Err(format!("arliamp: unsupported path type: {}", resolved.display()).into());
+        }
+
+        resolved_inputs.push(resolved.to_string_lossy().to_string());
     }
 
     let tmux_bin = find_in_path("tmux")?;
@@ -208,14 +209,18 @@ tmux display-message "VEO: $label (v)"
 set -eu
 export TERM=xterm-256color
 export COLORTERM=truecolor
-{rliamp} {music}
+{rliamp} {inputs}
 {tmux} -S {socket} kill-session -t {session} >/dev/null 2>&1 || true
 "#,
         tmux = sh_quote(&tmux_bin.to_string_lossy()),
         socket = sh_quote(&tmux_socket.to_string_lossy()),
         session = sh_quote(&session),
         rliamp = sh_quote(&rliamp_bin.to_string_lossy()),
-        music = sh_quote(&music_dir.to_string_lossy()),
+        inputs = resolved_inputs
+            .iter()
+            .map(|s| sh_quote(s))
+            .collect::<Vec<_>>()
+            .join(" "),
     );
     write_executable(&center_script, &center_body)?;
 
@@ -317,8 +322,43 @@ CENTER_PANE=$("$TMUX_BIN" -S "$TMUX_SOCKET" display-message -p -t "$SESSION":0.0
         return Err("arliamp: failed to launch Ghostty".into());
     }
 
-    println!("arliamp launched: {}", music_dir.display());
+    if resolved_inputs.is_empty() {
+        println!("arliamp launched: provider mode (no input args)");
+    } else {
+        println!("arliamp launched: {}", resolved_inputs.join(" "));
+    }
     Ok(())
+}
+
+fn looks_like_url(input: &str) -> bool {
+    input.contains("://")
+}
+
+fn validate_local_file_type(path: &Path) -> Result<(), Box<dyn Error>> {
+    const SUPPORTED_FILE_EXTENSIONS: &[&str] = &[
+        "mp3", "wav", "flac", "ogg", "m4a", "aac", "m4b", "m4p", "alac", "wma", "opus", "m3u",
+        "m3u8",
+    ];
+
+    let ext = path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_ascii_lowercase())
+        .ok_or_else(|| format!("arliamp: unsupported file type: {}", path.display()))?;
+
+    if SUPPORTED_FILE_EXTENSIONS
+        .iter()
+        .any(|supported| *supported == ext)
+    {
+        return Ok(());
+    }
+
+    Err(format!(
+        "arliamp: unsupported file type: {} (supported: {})",
+        path.display(),
+        SUPPORTED_FILE_EXTENSIONS.join(", ")
+    )
+    .into())
 }
 
 fn find_in_path(binary: &str) -> Result<PathBuf, Box<dyn Error>> {

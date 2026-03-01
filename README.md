@@ -43,7 +43,21 @@ zb install 0smboy/rliamp/rliamp
 
 ```bash
 arliamp "/path/to/music-directory"
+arliamp "/path/to/song.m4a"
+arliamp "https://example.com/song.mp3"
+arliamp "/path/to/list1.m3u" "/path/to/list2.m3u"
+arliamp
 ```
+
+Input behavior follows `rliamp`:
+
+- local directory
+- local file (`mp3`, `wav`, `flac`, `ogg`, `m4a`, `aac`, `m4b`, `m4p`, `alac`, `wma`, `opus`, `m3u`, `m3u8`)
+- URL (including direct audio links / M3U / RSS feed URLs)
+- multiple inputs
+- no-arg provider mode
+
+Unsupported local file types are rejected before launching the stage.
 
 Inside the session:
 
