@@ -1,8 +1,8 @@
 class Arliamp < Formula
   desc "Isolated cyber stage launcher for rliamp in Ghostty"
   homepage "https://github.com/0smboy/arliamp"
-  url "https://github.com/0smboy/arliamp/archive/refs/tags/v1.1.0.tar.gz"
-  sha256 "a9a76555458cd1491ff66a858883552f08c35e1e9b5c2eda5012eead612f593a"
+  url "https://github.com/0smboy/arliamp/archive/refs/tags/v1.2.0.tar.gz"
+  sha256 "a95bb17d1f4f948b7160355fb4d35803df4754976dc57f4e25482e9fab4d04fc"
   license :cannot_represent
 
   depends_on "rust" => :build
