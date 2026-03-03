@@ -198,7 +198,6 @@ tmux display-message "VEO: $label (v)"
          set -g pane-border-status off\n\
          set -sg escape-time 0\n\
          bind -n v run-shell {toggle}\n\
-         bind -n V run-shell {toggle}\n\
          bind v run-shell {toggle}\n",
         toggle = sh_quote(&toggle_script.to_string_lossy()),
     );

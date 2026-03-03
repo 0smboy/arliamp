@@ -4,17 +4,44 @@
 
 `arliamp` launches an isolated, full-screen Ghostty session for `rliamp` with a cyber stage wrapper (matrix background + centered player pane), without touching global Ghostty config.
 
+## One-Line Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/0smboy/arliamp/HEAD/install.sh | sh
+```
+
+By default, the script auto-selects `brew` or `zb` and installs:
+
+- `arliamp`
+- `rliamp`
+- `tmux`
+- `unimatrix` (via `pip`)
+
+You can force package manager selection:
+
+```bash
+ARLIAMP_PM=brew curl -fsSL https://raw.githubusercontent.com/0smboy/arliamp/HEAD/install.sh | sh
+ARLIAMP_PM=zb curl -fsSL https://raw.githubusercontent.com/0smboy/arliamp/HEAD/install.sh | sh
+```
+
 ## Install arliamp
 
 ```bash
-# Homebrew
+# Homebrew (all-in-one)
+brew install tmux python
+python3 -m pip install --user --upgrade git+https://github.com/will8211/unimatrix.git
+brew tap 0smboy/rliamp https://github.com/0smboy/rliamp
+brew install 0smboy/rliamp/rliamp
 brew tap 0smboy/arliamp https://github.com/0smboy/arliamp
 brew install 0smboy/arliamp/arliamp
 
-# ZeroBrew (requires Ruby 3 in PATH)
+# ZeroBrew (all-in-one, requires Ruby 3 in PATH)
 brew install ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+zb install tmux
+zb install 0smboy/rliamp/rliamp
 zb install 0smboy/arliamp/arliamp
+python3 -m pip install --user --upgrade git+https://github.com/will8211/unimatrix.git
 export PATH="/opt/zerobrew/bin:$PATH"
 ```
 
